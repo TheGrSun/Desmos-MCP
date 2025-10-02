@@ -1,0 +1,11 @@
+{
+  "desmos": {
+    "use_api": true,
+    "api_key_env_var": "DESMOS_API_KEY",
+    "fallback_to_local": true
+  },
+  "rendering": {
+    "default_width": 600,
+    "default_height": 400
+  }
+}
