@@ -10,3 +10,6 @@ dependencies = [
     "matplotlib>=3.10.6",
     "sympy>=1.14.0",
 ]
+
+[project.scripts]
+desmos-mcp = "main:main"
