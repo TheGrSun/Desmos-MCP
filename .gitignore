@@ -11,3 +11,10 @@ wheels/
 
 # Log files
 watchmedo.log
+
+# Direnv
+.direnv
+.envrc
+
+# Nix
+result
