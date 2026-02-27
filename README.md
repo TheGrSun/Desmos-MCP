@@ -8,6 +8,10 @@ English | [中文](./README.zh.md)
 
 This is a standard Model Context Protocol (MCP) server designed to provide powerful mathematical formula visualization and analysis capabilities for Large Language Models (LLMs). It utilizes `sympy` for local rendering and computation, and can optionally integrate with the Desmos API.
 
+<a href="https://glama.ai/mcp/servers/@TheGrSun/Desmos-MCP">
+  <img width="380" height="200" src="https://glama.ai/mcp/servers/@TheGrSun/Desmos-MCP/badge" alt="Desmos Server MCP server" />
+</a>
+
 ## ✨ Features
 
 - **Interactive Formula Validation**: Use the `validate_formula` tool to check the syntax of mathematical formulas. If a formula is invalid, it uses the LLM sampling feature to provide an easy-to-understand explanation of the error.
