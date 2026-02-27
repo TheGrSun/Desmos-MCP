@@ -245,5 +245,8 @@ async def plot_multiple_functions(
         await ctx.progress.end()
         return f"Error plotting multiple functions. Details: {e}"
 
-if __name__ == "__main__":
+def main():
     mcp.run()
+
+if __name__ == "__main__":
+    main()
