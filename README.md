@@ -5,6 +5,10 @@
 Give an AI assistant offline function plots and symbolic analysis, plus editable Desmos graphs in a browser.
 Python 3.10+ · FastMCP 2.x · Apache-2.0 · Independent project, not affiliated with Desmos.
 
+<a href="https://glama.ai/mcp/servers/@TheGrSun/Desmos-MCP">
+  <img width="380" height="200" src="https://glama.ai/mcp/servers/@TheGrSun/Desmos-MCP/badge" alt="Desmos Server MCP server" />
+</a>
+
 ## What works
 
 | Tool | Result | Requirements |
