@@ -19,6 +19,26 @@ Offline tools accept `y = x^2`, `2*x + 1`, `sin(x)`, `sqrt(x)`, `abs(x)`, `pi` a
 The interactive tool accepts **Desmos LaTeX**, including `a=1`, `y=ax^2` and `x^2+y^2=9`.
 These are separate syntax contracts. Interactive expressions are checked by Desmos when the page connects.
 
+## What the assistant returns
+
+An offline plotting call returns **native MCP PNG image content** plus text metadata containing the formula,
+warnings, and a saved file path when saving is enabled. Image-capable clients can show the plot directly in chat.
+
+An interactive call returns **an HTML file path and resource URI**, not an embedded browser session.
+Open the file in a browser to connect to Desmos and edit the graph. A client may offer its own preview UI,
+but HTML resources are not automatically rendered by every MCP client. A local file URI is not a public share link.
+
+The current tools are 2D. Three-dimensional plotting is not yet implemented.
+
+## Verification status
+
+The 0.2 implementation passed 41 Python tests and 3 isolated JavaScript controller tests locally on macOS/Python 3.10.
+The CLI, native PNG output, and bundled HTML template were also checked from a separately installed wheel.
+CI is configured for Linux, macOS and Windows with Python 3.10/3.12; this is not a claim that all remote jobs have passed.
+
+The HTML controller tests simulate the Desmos SDK. A live connection with a real API key and browser layout verification
+remain outstanding; automated navigation to the local HTML was blocked by the review environment's browser policy.
+
 ## Quick start
 
 Install [uv](https://docs.astral.sh/uv/getting-started/installation/) if needed, then:

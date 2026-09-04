@@ -19,6 +19,26 @@ Python 3.10+ · FastMCP 2.x · Apache-2.0 · 独立开源项目，非 Desmos 官
 交互工具使用 **Desmos LaTeX**，例如 `a=1`、`y=ax^2`、`x^2+y^2=9`。
 两种输入格式有明确区分；交互公式由连接后的 Desmos 计算器检查。
 
+## 助手会返回什么
+
+离线绘图返回 **MCP 原生 PNG 图片内容**，同时返回公式、警告，以及启用保存时的文件路径等文本信息。
+支持图片的客户端可直接在对话中显示图形。
+
+交互绘图返回 **HTML 文件路径和资源 URI**，不是自动嵌入的浏览器会话。
+需要在浏览器中打开文件，连接 Desmos 后编辑图表。客户端可以提供自己的预览界面，
+但不是所有 MCP 客户端都会直接渲染 HTML 资源。本地文件 URI 也不是可公开分享的网址。
+
+目前工具支持二维图形，三维绘图尚未实现。
+
+## 验证状态
+
+0.2 实现在本地 macOS/Python 3.10 环境通过了 41 个 Python 测试和 3 个隔离的 JavaScript 控制器测试。
+另在独立安装的 wheel 中验证了命令入口、PNG 返回及 HTML 模板打包。
+CI 已配置 Linux、macOS、Windows 和 Python 3.10/3.12；不表示远端所有任务已经运行通过。
+
+HTML 控制器测试使用模拟 Desmos SDK。真实 API key 连接和浏览器布局验证仍待完成；
+审阅环境的浏览器策略阻止了自动访问本地 HTML 文件。
+
 ## 安装并接入
 
 先安装 [uv](https://docs.astral.sh/uv/getting-started/installation/)，然后执行：
