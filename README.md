@@ -1,97 +1,108 @@
-# Desmos-MCP Server
+# Desmos MCP
 
----
+[中文](README.zh.md) · [Client setup](docs/CLIENTS.md) · [Examples](docs/EXAMPLES.md)
 
-English | [中文](./README.zh.md)
+Give an AI assistant offline function plots and symbolic analysis, plus editable Desmos graphs in a browser.
+Python 3.10+ · FastMCP 2.x · Apache-2.0 · Independent project, not affiliated with Desmos.
 
----
+## What works
 
-This is a standard Model Context Protocol (MCP) server designed to provide powerful mathematical formula visualization and analysis capabilities for Large Language Models (LLMs). It utilizes `sympy` for local rendering and computation, and can optionally integrate with the Desmos API.
+| Tool | Result | Requirements |
+| --- | --- | --- |
+| `validate_formula` | Normalized formula or actionable syntax guidance | Offline |
+| `plot_math_function` | PNG image and optional saved file | Offline |
+| `plot_multiple_functions` | 1–12 curves on shared axes | Offline |
+| `analyze_formula` | Domain; optionally range, derivative, stationary points and corner candidates | Offline |
+| `create_interactive_graph` | Standalone HTML with editable expressions, sliders, zoom, PNG export and JSON state import/export | Browser, internet and your own Desmos API key |
 
-<a href="https://glama.ai/mcp/servers/@TheGrSun/Desmos-MCP">
-  <img width="380" height="200" src="https://glama.ai/mcp/servers/@TheGrSun/Desmos-MCP/badge" alt="Desmos Server MCP server" />
-</a>
+Offline tools accept `y = x^2`, `2*x + 1`, `sin(x)`, `sqrt(x)`, `abs(x)`, `pi` and `e`.
+The interactive tool accepts **Desmos LaTeX**, including `a=1`, `y=ax^2` and `x^2+y^2=9`.
+These are separate syntax contracts. Interactive expressions are checked by Desmos when the page connects.
 
-## ✨ Features
+## Quick start
 
-- **Interactive Formula Validation**: Use the `validate_formula` tool to check the syntax of mathematical formulas. If a formula is invalid, it uses the LLM sampling feature to provide an easy-to-understand explanation of the error.
-- **Single Function Plotting**: Use the `plot_math_function` tool to generate a 2D plot from a formula. It supports using the Desmos API (configurable via `config.json`) or falling back to local `matplotlib` rendering, and provides progress reports during execution.
-- **Multiple Function Plotting**: Use the `plot_multiple_functions` tool to plot multiple functions on the same graph.
-- **Symbolic Analysis**: Use the `analyze_formula` tool to calculate mathematical properties of a formula, such as its domain, range, and critical points.
-- **Save Plot to File**: Automatically saves the generated plot as a PNG file to a `Desmos-MCP` folder on your desktop.
+Install [uv](https://docs.astral.sh/uv/getting-started/installation/) if needed, then:
 
-## ⚙️ Tech Stack
+```sh
+git clone https://github.com/TheGrSun/Desmos-MCP.git
+cd Desmos-MCP
+uv sync --locked
+uv run desmos-mcp --help
+```
 
-- Python 3.10+
-- FastMCP
-- Sympy
-- Matplotlib
-- HTTPX
+Connect your MCP client using the [copyable configuration](docs/CLIENTS.md). The server uses stdio:
 
-## 🚀 Installation & Setup
+```sh
+uv run desmos-mcp
+```
 
-1.  **Clone the project** (if you haven't already)
-2.  **Install `uv`**
-    If you don't have `uv` installed, run the following command in your terminal:
-    ```sh
-    powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
-    ```
-3.  **Create a virtual environment**
-    In the project root directory, run:
-    ```sh
-    uv venv
-    ```
-4.  **Install dependencies**
-    ```sh
-    uv sync
-    ```
-    This command will install all the necessary dependencies based on the `pyproject.toml` file.
+Waiting for input is normal: this command starts an MCP server, not a command-line chat.
+The compatibility command `uv run src/main.py` also works.
 
-## 🔧 Configuration
+Try asking your assistant:
 
-The server's behavior is controlled by the `config.json` file in the project root.
+> Plot sin(x) and cos(x) from -2*pi to 2*pi and explain where they cross.
+
+> Create a Desmos graph with a=1 and y=ax^2 so I can explore the parameter.
+
+For the second request, open the returned HTML file, get your own key from [Desmos](https://www.desmos.com/my-api),
+and enter it on the page. The key is used in memory to load the official SDK; it is not embedded in the generated file
+or included in exported state JSON. The page explains editing, sliders, reset, and saving. No browser opens automatically.
+Browser edits do not automatically sync to the assistant: save state before closing the page.
+
+## Configuration
+
+Configuration priority: `--config PATH` → `DESMOS_MCP_CONFIG` → `./config.json` → built-in defaults.
+Relative output directories resolve against the configuration file, not the caller's current directory.
 
 ```json
 {
-  "desmos": {
-    "use_api": true,
-    "api_key_env_var": "DESMOS_API_KEY",
-    "fallback_to_local": true
-  },
+  "output_dir": "graphs",
+  "timeout_seconds": 20,
   "rendering": {
-    "default_width": 600,
-    "default_height": 400
+    "default_width": 900,
+    "default_height": 600,
+    "samples": 1600,
+    "save_files": true
   }
 }
 ```
 
-- `desmos.use_api`: If `true`, the server will first attempt to use the Desmos API for plotting.
-- `desmos.api_key_env_var`: Specifies the name of the environment variable used to get the Desmos API key.
-- `desmos.fallback_to_local`: If `use_api` is `true` but the API call fails, this determines if the server should automatically fall back to local rendering.
+Without a configuration file, artifacts go to the operating system's temporary directory under `desmos-mcp`.
+Use an explicit directory for lasting files. File names contain UUIDs. `save_files=false` disables saved PNGs;
+interactive HTML is always saved because it is the result of that tool. Images still return as native MCP content.
+Generated files are not automatically deleted. Delete unwanted artifacts from the configured output directory.
 
-### Set Desmos API Key (Optional)
+Offline inputs have length, syntax, and range limits. Symbolic analysis and rendering run in disposable processes
+with a configurable timeout and at most two active workers. The whitelist parser never evaluates Python from user input.
+This is a local stdio service, not a hardened public multi-tenant computation service.
 
-To use the Desmos API feature, you need to set an environment variable. For example, in PowerShell:
+## Accuracy and limits
 
-```powershell
-$env:DESMOS_API_KEY="your_actual_api_key_here"
-```
+- Offline analysis supports real-valued functions of `x` with explicit multiplication and radians.
+  Allowed functions: `sin`, `cos`, `tan`, `asin`, `acos`, `atan`, `sinh`, `cosh`, `tanh`, `exp`, `log`/`ln`, `sqrt`, `abs`/`Abs`.
+- `basic` analyzes the domain. `detailed` adds range and derivative analysis. `critical_points` reports stationary points
+  and possible nondifferentiable points separately. Candidates are not classified extrema.
+- Unresolved symbolic results include warnings; a `ConditionSet` is not “no solutions.” Some requests can time out.
+- Static PNG curves are sampled approximations; inspect a narrower range near discontinuities or rapid oscillations.
+- Desmos's public integration is a [JavaScript SDK](https://www.desmos.com/api/v1.11/docs/index.html), not a REST PNG endpoint.
+  No API key is needed for offline tools. Requests to the SDK happen only after connecting in the browser.
+- Returned file paths refer to the server machine. Remote clients need a separate file-transfer mechanism.
+- Tools do not provide symbolic integration, limits, 3D analysis, or automatic browser-to-MCP state synchronization.
 
-## ▶️ Running the Server
-
-To run the server independently for testing, execute the following command in the project root:
+## Development
 
 ```sh
-uv run src/main.py
+uv sync --locked
+uv run pytest
+uv run ruff check src tests
+node --test tests/interactive.test.cjs
+uv build
 ```
 
-The server will start via standard input/output (stdio) and will be ready to be connected by an MCP client (like the Gemini CLI).
+Node.js 22+ is needed only for the isolated interactive-controller tests, not for running the MCP server.
+See [CONTRIBUTING.md](CONTRIBUTING.md) for module boundaries and validation requirements.
+[CHANGELOG.md](CHANGELOG.md) documents the 0.2 migration, including removal of the old `desmos` configuration block.
+The Python package includes the HTML template; the CLI works after wheel installation.
 
-## 📝 To-Do
-
-- [ ] **Add 3D plotting support.**
-- [ ] **Implement real-time formula analysis and interactive plotting, similar to Desmos.**
-
-## 📄 License
-
-This project is licensed under the Apache 2.0 License. See the [LICENSE](LICENSE) file for details.
+Licensed under [Apache-2.0](LICENSE).

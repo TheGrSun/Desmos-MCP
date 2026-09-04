@@ -1,93 +1,104 @@
-# Desmos-MCP 服务器
+# Desmos MCP
 
----
+[English](README.md) · [客户端接入](docs/CLIENTS.md) · [调用示例](docs/EXAMPLES.md)
 
-[English](./README.md) | 中文
+让 AI 助手离线绘制函数、分析数学性质，并生成可在浏览器中编辑的 Desmos 交互图表。
+Python 3.10+ · FastMCP 2.x · Apache-2.0 · 独立开源项目，非 Desmos 官方产品。
 
----
+## 可以做什么
 
-这是一个标准的模型上下文协议 (MCP) 服务器，旨在为大型语言模型 (LLM) 提供强大的数学公式可视化和分析功能。它利用 `sympy` 进行本地渲染和计算，并能选择性地集成 Desmos API。
+| 工具 | 结果 | 使用条件 |
+| --- | --- | --- |
+| `validate_formula` | 标准化公式，或返回可操作的修正建议 | 离线 |
+| `plot_math_function` | 原生 PNG 图片及可选的保存路径 | 离线 |
+| `plot_multiple_functions` | 同一坐标系比较 1–12 个函数 | 离线 |
+| `analyze_formula` | 定义域；可进一步计算值域、导数、驻点和不可导候选点 | 离线 |
+| `create_interactive_graph` | 可编辑公式、调滑块、缩放、导出 PNG、保存和导入状态的 HTML | 浏览器、联网、自有 Desmos API key |
 
-## ✨ 功能特性
+离线工具使用 `y = x^2`、`2*x + 1`、`sin(x)`、`sqrt(x)`、`abs(x)` 等语法。
+交互工具使用 **Desmos LaTeX**，例如 `a=1`、`y=ax^2`、`x^2+y^2=9`。
+两种输入格式有明确区分；交互公式由连接后的 Desmos 计算器检查。
 
-- **交互式公式验证**: 使用 `validate_formula` 工具检查数学公式的语法。如果公式无效，它会利用 LLM 采样功能提供简单易懂的错误解释。
-- **单函数绘图**: 使用 `plot_math_function` 工具根据公式生成 2D 图形。支持通过 `config.json` 配置使用 Desmos API 或回退到本地 `matplotlib` 渲染，并在执行期间提供进度报告。
-- **多函数绘图**: 使用 `plot_multiple_functions` 工具在同一张图表上绘制多个函数。
-- **符号分析**: 使用 `analyze_formula` 工具计算公式的数学特性，如定义域、值域和临界点。
-- **保存绘图文件**: 自动将生成的图像保存为 PNG 文件到您桌面上的 `Desmos-MCP` 文件夹中。
+## 安装并接入
 
-## ⚙️ 技术栈
+先安装 [uv](https://docs.astral.sh/uv/getting-started/installation/)，然后执行：
 
-- Python 3.10+
-- FastMCP
-- Sympy
-- Matplotlib
-- HTTPX
+```sh
+git clone https://github.com/TheGrSun/Desmos-MCP.git
+cd Desmos-MCP
+uv sync --locked
+uv run desmos-mcp --help
+```
 
-## 🚀 安装与设置
+按[客户端接入文档](docs/CLIENTS.md)配置 MCP。手动启动命令：
 
-1.  **克隆项目** (如果您尚未这样做)
-2.  **安装 `uv`**
-    如果您尚未安装 `uv`，请在终端中运行以下命令：
-    ```sh
-    powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
-    ```
-3.  **创建虚拟环境**
-    在项目根目录运行：
-    ```sh
-    uv venv
-    ```
-4.  **安装依赖**
-    ```sh
-    uv sync
-    ```
-    此命令将根据 `pyproject.toml` 文件安装所有必需的依赖项。
+```sh
+uv run desmos-mcp
+```
 
-## 🔧 配置
+启动后等待输入是正常现象：这是 stdio MCP 服务，需要客户端通过协议调用，不是终端聊天程序。
+旧命令 `uv run src/main.py` 仍可使用。
 
-服务器的行为由项目根目录下的 `config.json` 文件控制。
+接入后可以对助手说：
+
+> 在 -2π 到 2π 上比较 sin(x) 和 cos(x)，解释它们的交点。
+
+> 创建 a=1、y=ax^2 的交互图，用中文引导我观察参数变化。
+
+第二个请求会生成 HTML 文件。打开后，在 [Desmos](https://www.desmos.com/my-api)申请自己的 key，填入页面即可连接。
+Key 在页面内存中使用，用来从官方加载 SDK；不会写入生成的 HTML 或导出的状态 JSON。
+页面提供公式编辑、滑块、恢复初始图、图片导出及状态导入/导出指导，不会自动启动浏览器。
+网页修改不会自动回传给 MCP 助手；刷新或关闭前请保存状态。
+
+## 配置
+
+优先级：`--config 路径` → `DESMOS_MCP_CONFIG` 环境变量 → 当前目录 `config.json` → 内置默认值。
+相对输出路径以配置文件所在目录为基准。
 
 ```json
 {
-  "desmos": {
-    "use_api": true,
-    "api_key_env_var": "DESMOS_API_KEY",
-    "fallback_to_local": true
-  },
+  "output_dir": "graphs",
+  "timeout_seconds": 20,
   "rendering": {
-    "default_width": 600,
-    "default_height": 400
+    "default_width": 900,
+    "default_height": 600,
+    "samples": 1600,
+    "save_files": true
   }
 }
 ```
 
-- `desmos.use_api`: 如果为 `true`，服务器将优先尝试使用 Desmos API 进行绘图。
-- `desmos.api_key_env_var`: 指定用于获取 Desmos API 密钥的环境变量的名称。
-- `desmos.fallback_to_local`: 如果 `use_api` 为 `true` 但 API 调用失败，服务器是否应自动回退到本地渲染。
+没有配置文件时，文件保存在系统临时目录下的 `desmos-mcp` 中；长期保存请指定输出目录。
+文件名含 UUID，避免并发覆盖。`save_files=false` 只关闭 PNG 落盘，MCP 仍返回图片；交互 HTML 始终保存。
+文件不会自动清理，可在输出目录手动删除不需要的图表。
 
-### 设置 Desmos API 密钥 (可选)
+公式长度、语法、坐标范围均有校验。绘图与符号计算在独立进程运行，超过时限会终止，同时最多运行两个计算进程。
+白名单解析器不会执行输入中的 Python 代码。这是本地 stdio 服务，不是面向公开多租户环境的计算沙箱。
 
-要使用 Desmos API 功能，您需要设置一个环境变量。例如，在 PowerShell 中：
+## 数学能力与边界
 
-```powershell
-$env:DESMOS_API_KEY="your_actual_api_key_here"
-```
+- 离线计算支持实变量 `x`，显式乘法及弧度制；常数包括 `pi`、`π`、`e`。
+  函数包括 `sin/cos/tan`、`asin/acos/atan`、`sinh/cosh/tanh`、`exp`、`log/ln`、`sqrt`、`abs/Abs`。
+- `basic` 计算定义域；`detailed` 增加值域和导数分析；`critical_points` 分别报告驻点和不可导候选点，不直接断言其为极值。
+- 符号求解未完成时返回警告。`ConditionSet` 不代表无解；复杂计算可能超时。
+- PNG 来自有限采样，间断点或高频振荡附近应缩小区间进一步检查。
+- Desmos 官方提供[浏览器 JavaScript SDK](https://www.desmos.com/api/v1.11/docs/index.html)，没有使用假定的 REST 绘图接口。
+  离线工具不需要 key；只有在交互页面点击连接后才请求 SDK。
+- 返回路径属于服务端机器。远程客户端需要另外传输文件，不能直接打开另一台机器的本地路径。
+- 暂不提供符号积分、极限工具、3D 分析及网页与 MCP 的自动状态同步。
 
-## ▶️ 运行服务器
-
-要独立运行服务器以进行测试，请在项目根目录中执行：
+## 开发与迁移
 
 ```sh
-uv run src/main.py
+uv sync --locked
+uv run pytest
+uv run ruff check src tests
+node --test tests/interactive.test.cjs
+uv build
 ```
 
-服务器将通过标准输入/输出 (stdio) 启动，并准备好由 MCP 客户端（如 Gemini CLI）连接。
+Node.js 22+ 仅用于交互控制器的隔离测试，运行 MCP 服务不需要 Node。
+参见[贡献指南](CONTRIBUTING.md)和 [0.2 迁移说明](CHANGELOG.md)。旧配置中的 `desmos` 块已移除，需要替换为上面的格式。
+HTML 模板随 Python 包一起发布，安装 wheel 后可直接使用命令入口。
 
-## 📝 未来计划
-
-- [ ] **添加对3D图像的支持。**
-- [ ] **实现类似于Desmos的实时公式分析和交互式绘图功能。**
-
-## 📄 许可证
-
-该项目根据 Apache 2.0 许可证授权。详情请参阅 [LICENSE](LICENSE) 文件。
+许可证：[Apache-2.0](LICENSE)。

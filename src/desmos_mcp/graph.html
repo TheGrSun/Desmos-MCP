@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Desmos MCP · Interactive graph</title>
+  <style>
+    :root {font-family:system-ui,-apple-system,sans-serif;color:#172c27;background:#eef3ef;color-scheme:light}
+    *{box-sizing:border-box}body{margin:0}header{padding:24px 32px 18px;border-bottom:1px solid #d5e0d8;background:#fff}
+    .brand{font-size:12px;font-weight:700;letter-spacing:.12em;color:#407364}h1{font-size:26px;margin:8px 0}
+    p{line-height:1.6;margin:8px 0;color:#52665e}main{max-width:1500px;margin:auto;padding:24px 32px}
+    .setup{max-width:760px;margin:20px auto;padding:28px;border:1px solid #d5e0d8;background:white;border-radius:16px}
+    h2{margin:0 0 12px;font-size:20px}label{display:block;margin:20px 0 8px;font-weight:600}
+    input[type=password]{width:100%;padding:12px;border:1px solid #9aafa4;border-radius:8px;font:inherit}
+    button,.link{font:inherit;cursor:pointer;border:1px solid #b3c6ba;background:white;color:#234f40;padding:10px 16px;border-radius:8px}
+    button.primary{background:#225c45;color:white;border-color:#225c45;margin-top:12px}button:disabled{cursor:default;opacity:.5}
+    button:focus-visible,a:focus-visible,input:focus-visible{outline:3px solid #ca9122;outline-offset:3px}a{color:#21694b}
+    .toolbar{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 12px}.status{min-height:28px;margin:10px 0;color:#285641}
+    .error{color:#a52927}.graph{height:70vh;min-height:420px;border:1px solid #c4d4c9;border-radius:12px;overflow:hidden;background:white}
+    pre{padding:16px;background:#f2f6f3;border-radius:8px;overflow:auto;white-space:pre-wrap}.hint{font-size:14px}
+    [hidden]{display:none!important}footer{margin:18px 0;color:#65776c;font-size:13px}
+    @media(max-width:600px){header,main{padding:16px}.setup{padding:20px}.graph{height:72vh}h1{font-size:22px}}
+  </style>
+</head>
+<body>
+  <noscript>Please enable JavaScript to use this graph. 请启用 JavaScript 使用交互图表。</noscript>
+  <header><span class="brand">DESMOS MCP / GRAPH LAB</span><h1 id="title"></h1><p id="intro"></p></header>
+  <main>
+    <section id="setup" class="setup" aria-labelledby="setup-title">
+      <h2 id="setup-title"></h2><p id="setup-help"></p>
+      <a id="get-key" href="https://www.desmos.com/my-api" target="_blank" rel="noopener noreferrer"></a>
+      <form id="connect"><label for="api-key" id="key-label"></label><input id="api-key" type="password" autocomplete="off" required>
+        <button id="load" class="primary" type="submit"></button></form>
+      <p class="hint" id="privacy"></p><h2 id="expressions-title"></h2><pre id="expressions"></pre>
+    </section>
+    <p id="status" class="status" role="status" aria-live="polite"></p>
+    <section id="workspace" hidden>
+      <nav class="toolbar" aria-label="Graph actions"><button id="reset"></button><button id="save"></button><button id="restore"></button><button id="png"></button></nav>
+      <input id="state-file" type="file" accept="application/json,.json" hidden>
+      <div id="calculator" class="graph"></div><p class="hint" id="howto"></p>
+    </section>
+    <footer id="footer"></footer>
+  </main>
+  <script>
+    "use strict";
+    const graph = __GRAPH_DATA__;
+    const messages = graph.language === "zh-CN" ? {
+      intro:"编辑公式，拖动参数滑块，探索图像如何变化。",
+      setup:"连接 Desmos 交互计算器", help:"此页面通过官方 JavaScript SDK 加载计算器。需要联网及你自己的 Desmos API key；PNG 绘图工具可离线使用。",
+      getKey:"前往 Desmos 申请 API key ↗", key:"Desmos API key", load:"加载交互图表", loading:"正在连接 Desmos…",
+      privacy:"Key 仅在本页内存中使用，并发送给 Desmos 加载 SDK；不会写入导出的状态文件。浏览器扩展仍可能读取本页内容。",
+      expressions:"初始公式（Desmos LaTeX）", reset:"恢复初始图表", save:"保存状态 JSON", restore:"导入状态", png:"导出 PNG",
+      howto:"在左侧编辑公式；滚轮缩放、拖动平移；点击曲线查看坐标。输入 a=1，再输入 y=ax^2，可用滑块探索参数。刷新前请保存状态。",
+      ready:"图表已就绪。", failed:"无法加载 Desmos。请检查网络、API key 或浏览器控制台，然后重试。",
+      invalid:"导入失败：请选择 Desmos 导出的有效状态 JSON（不超过 2 MB）。", restored:"已导入状态。", saved:"已下载状态文件。", actionFailed:"操作失败，请重试或检查浏览器控制台。",
+      footer:"Desmos MCP · 独立开源项目，非 Desmos 官方产品。网页修改不会自动同步回 MCP 会话。"
+    } : {
+      intro:"Edit expressions, move parameter sliders, and explore how your graph changes.",
+      setup:"Connect the Desmos calculator", help:"This page uses the official JavaScript SDK. Internet access and your own Desmos API key are required. The PNG plotting tools work offline.",
+      getKey:"Get a Desmos API key ↗", key:"Desmos API key", load:"Load interactive graph", loading:"Connecting to Desmos…",
+      privacy:"The key stays in page memory and is sent to Desmos to load its SDK. It is not included in exported state files. Browser extensions may still read page contents.",
+      expressions:"Initial expressions (Desmos LaTeX)", reset:"Reset graph", save:"Save state JSON", restore:"Import state", png:"Export PNG",
+      howto:"Edit expressions on the left; scroll to zoom, drag to pan, and click a curve for coordinates. Try a=1 and y=ax^2 for a parameter slider. Save state before refreshing.",
+      ready:"Graph ready.", failed:"Could not load Desmos. Check your connection, API key, or browser console, then retry.",
+      invalid:"Import failed: choose a valid Desmos state JSON file (up to 2 MB).", restored:"State imported.", saved:"State downloaded.", actionFailed:"Operation failed. Please retry or check the browser console.",
+      footer:"Desmos MCP · Independent open-source project, not an official Desmos product. Browser edits do not automatically sync to the MCP session."
+    };
+    const el = id => document.getElementById(id);
+    document.documentElement.lang = graph.language;
+    document.title = graph.title + " · Desmos MCP";
+    el("title").textContent = graph.title;
+    for (const [id,key] of Object.entries({intro:"intro","setup-title":"setup","setup-help":"help","get-key":"getKey","key-label":"key",load:"load",privacy:"privacy","expressions-title":"expressions",reset:"reset",save:"save",restore:"restore",png:"png",howto:"howto",footer:"footer"})) el(id).textContent = messages[key];
+    el("expressions").textContent = graph.expressions.join("\n");
+    let calculator, initialState;
+    const status = (message,error=false) => {el("status").textContent=message;el("status").classList.toggle("error",error);};
+    el("connect").addEventListener("submit", async event => {
+      event.preventDefault();
+      const key = el("api-key").value.trim();
+      if (!key) return;
+      el("load").disabled = true; status(messages.loading);
+      let script;
+      try {
+        if (!window.Desmos) await new Promise((resolve,reject) => {
+          script=document.createElement("script");
+          const timer=setTimeout(()=>{script.remove();reject(new Error("timeout"));},20000);
+          script.onload=()=>{clearTimeout(timer);resolve();};script.onerror=()=>{clearTimeout(timer);reject(new Error("load"));};
+          script.src="https://www.desmos.com/api/v1.11/calculator.js?apiKey="+encodeURIComponent(key);
+          document.head.append(script);
+        });
+        el("workspace").hidden=false;
+        calculator=Desmos.GraphingCalculator(el("calculator"),{language:graph.language,capExpressionSize:true});
+        calculator.setExpressions(graph.expressions.map((latex,i)=>({id:"expression-"+i,latex})));
+        calculator.setMathBounds({left:graph.xRange[0],right:graph.xRange[1],bottom:graph.yRange[0],top:graph.yRange[1]});
+        initialState=calculator.getState();
+        el("setup").hidden=true;el("api-key").value="";status(messages.ready);
+      } catch(error) {
+        if(calculator){calculator.destroy();calculator=null;}
+        el("workspace").hidden=true;status(messages.failed,true);
+      } finally {if(script)script.remove();el("load").disabled=false;}
+    });
+    function download(url,name){const a=document.createElement("a");a.href=url;a.download=name;a.click();}
+    el("reset").onclick=()=>{try{calculator.setState(initialState);status(messages.ready);}catch(error){status(messages.actionFailed,true);}};
+    el("save").onclick=()=>{
+      try {
+      const url=URL.createObjectURL(new Blob([JSON.stringify(calculator.getState(),null,2)],{type:"application/json"}));
+      download(url,"desmos-state.json");setTimeout(()=>URL.revokeObjectURL(url),1000);status(messages.saved);
+      }catch(error){status(messages.actionFailed,true);}
+    };
+    el("restore").onclick=()=>el("state-file").click();
+    el("state-file").onchange=async event=>{
+      const file=event.target.files[0];if(!file)return;
+      try {
+        if(file.size>2*1024*1024)throw new Error("size");
+        const state=JSON.parse(await file.text());
+        if(!state || typeof state!=="object" || !state.expressions || !Array.isArray(state.expressions.list))throw new Error("state");
+        calculator.setState(state);status(messages.restored);
+      }catch(error){status(messages.invalid,true);}finally{event.target.value="";}
+    };
+    el("png").onclick=()=>{try{download(calculator.screenshot({width:1200,height:800,targetPixelRatio:1}),"desmos-graph.png");}catch(error){status(messages.actionFailed,true);}};
+  </script>
+</body>
+</html>

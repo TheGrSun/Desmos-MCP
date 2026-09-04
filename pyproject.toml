@@ -1,15 +1,37 @@
 [project]
 name = "desmos-mcp"
-version = "0.1.0"
-description = "Add your description here"
+version = "0.2.0"
+description = "Safe offline math analysis and plotting, plus interactive Desmos graphs over MCP"
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
-    "fastmcp>=2.12.2",
-    "httpx>=0.28.1",
+    "fastmcp>=2.12.2,<3",
     "matplotlib>=3.10.6",
     "sympy>=1.14.0",
+    "numpy>=2.2,<3",
+    "pydantic>=2.11,<3",
 ]
 
 [project.scripts]
-desmos-mcp = "main:main"
+desmos-mcp = "desmos_mcp.server:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/desmos_mcp"]
+
+[dependency-groups]
+dev = ["pytest>=8,<9", "pytest-asyncio>=0.24,<1", "ruff>=0.12,<1"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+
+[tool.ruff]
+target-version = "py310"
+line-length = 120
+
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F"]
