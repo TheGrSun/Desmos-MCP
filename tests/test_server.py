@@ -98,7 +98,8 @@ async def test_slow_worker_startup_does_not_consume_calculation_timeout(monkeypa
     class Output:
         async def readline(self):
             await asyncio.sleep(0.02)
-            return b'{"ready": true}\n'
+            # Windows TextIO uses CRLF; the protocol must not compare raw lines.
+            return b'{"ready": true}\r\n'
 
         async def read(self):
             return b'{"result": {"valid": true}}\n'

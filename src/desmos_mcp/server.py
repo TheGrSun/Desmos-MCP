@@ -62,7 +62,11 @@ async def run_worker(payload: dict, timeout: float) -> dict:
         # A cold macOS runner may spend tens of seconds importing Matplotlib and
         # creating its font cache. That setup is not part of the calculation budget.
         ready_line = await asyncio.wait_for(process.stdout.readline(), max(60.0, timeout))
-        if ready_line != b'{"ready": true}\n':
+        try:
+            worker_ready = json.loads(ready_line) == {"ready": True}
+        except (json.JSONDecodeError, UnicodeDecodeError):
+            worker_ready = False
+        if not worker_ready:
             stderr = await process.stderr.read()
             await process.wait()
             raise ToolError(
