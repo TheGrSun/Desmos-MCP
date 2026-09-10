@@ -97,7 +97,7 @@ async def test_slow_worker_startup_does_not_consume_calculation_timeout(monkeypa
 
     class Output:
         async def readline(self):
-            await asyncio.sleep(0.02)
+            await asyncio.sleep(0.2)
             # Windows TextIO uses CRLF; the protocol must not compare raw lines.
             return b'{"ready": true}\r\n'
 
@@ -115,11 +115,14 @@ async def test_slow_worker_startup_does_not_consume_calculation_timeout(monkeypa
         async def wait(self):
             return 0
 
+        async def communicate(self):
+            return b"", b""
+
     async def create(*_args, **_kwargs):
         return Process()
 
     monkeypatch.setattr(asyncio, "create_subprocess_exec", create)
-    result = await run_worker({"operation": "analyze"}, timeout=0.01)
+    result = await run_worker({"operation": "analyze"}, timeout=0.1)
     assert result == {"valid": True}
 
 

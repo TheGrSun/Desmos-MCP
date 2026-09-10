@@ -111,16 +111,29 @@ def render(payload: dict) -> dict:
     return {"png": base64.b64encode(buf.getvalue()).decode("ascii"), "warnings": messages}
 
 
+def warm_render_backend():
+    """Force one-time Matplotlib font discovery before the calculation timer."""
+    import matplotlib
+
+    matplotlib.use("Agg")
+    from matplotlib.figure import Figure
+
+    figure = Figure(figsize=(1, 1), dpi=20)
+    axes = figure.subplots()
+    axes.plot([0, 1], [0, 1], label="warmup")
+    axes.set(xlabel="x", ylabel="y")
+    axes.legend()
+    figure.savefig(io.BytesIO(), format="png")
+    figure.clear()
+
+
 def main():
     try:
         operation = sys.argv[1]
         if operation == "render":
-            # Import before announcing readiness so first-run font cache setup is
-            # excluded from the caller's calculation timeout.
-            import matplotlib
-
-            matplotlib.use("Agg")
-            import numpy  # noqa: F401
+            # Font discovery happens on the first actual draw rather than import.
+            # Complete one throwaway draw before announcing worker readiness.
+            warm_render_backend()
         print(json.dumps({"ready": True}), flush=True)
         payload = json.load(sys.stdin)
         result = analyze(payload["formula"], payload["analysis_type"]) if operation == "analyze" else render(payload)
