@@ -113,12 +113,17 @@ def render(payload: dict) -> dict:
 
 def main():
     try:
+        operation = sys.argv[1]
+        if operation == "render":
+            # Import before announcing readiness so first-run font cache setup is
+            # excluded from the caller's calculation timeout.
+            import matplotlib
+
+            matplotlib.use("Agg")
+            import numpy  # noqa: F401
+        print(json.dumps({"ready": True}), flush=True)
         payload = json.load(sys.stdin)
-        result = (
-            analyze(payload["formula"], payload["analysis_type"])
-            if payload["operation"] == "analyze"
-            else render(payload)
-        )
+        result = analyze(payload["formula"], payload["analysis_type"]) if operation == "analyze" else render(payload)
         print(json.dumps({"result": result}))
     except Exception as exc:
         print(json.dumps({"error": f"{type(exc).__name__}: {exc}"}))

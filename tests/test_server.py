@@ -84,6 +84,44 @@ async def test_timeout_terminates_worker():
         await run_worker({"operation": "analyze", "formula": "x", "analysis_type": "basic"}, 0.001)
 
 
+async def test_slow_worker_startup_does_not_consume_calculation_timeout(monkeypatch):
+    class Input:
+        def write(self, _data):
+            pass
+
+        async def drain(self):
+            pass
+
+        def close(self):
+            pass
+
+    class Output:
+        async def readline(self):
+            await asyncio.sleep(0.02)
+            return b'{"ready": true}\n'
+
+        async def read(self):
+            return b'{"result": {"valid": true}}\n'
+
+    class Error:
+        async def read(self):
+            return b""
+
+    class Process:
+        stdin, stdout, stderr = Input(), Output(), Error()
+        returncode = 0
+
+        async def wait(self):
+            return 0
+
+    async def create(*_args, **_kwargs):
+        return Process()
+
+    monkeypatch.setattr(asyncio, "create_subprocess_exec", create)
+    result = await run_worker({"operation": "analyze"}, timeout=0.01)
+    assert result == {"valid": True}
+
+
 async def test_cancellation_reaps_worker(monkeypatch):
     original = asyncio.create_subprocess_exec
     started = asyncio.Event()

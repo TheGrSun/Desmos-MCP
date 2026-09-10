@@ -36,7 +36,7 @@ The current tools are 2D. Three-dimensional plotting is not yet implemented.
 
 ## Verification status
 
-The 0.2 implementation passed 41 Python tests and 3 isolated JavaScript controller tests locally on macOS/Python 3.10.
+The 0.2 implementation passed 42 Python tests and 3 isolated JavaScript controller tests locally on macOS/Python 3.10.
 The CLI, native PNG output, and bundled HTML template were also checked from a separately installed wheel.
 CI is configured for Linux, macOS and Windows with Python 3.10/3.12; this is not a claim that all remote jobs have passed.
 

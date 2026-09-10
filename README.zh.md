@@ -32,7 +32,7 @@ Python 3.10+ · FastMCP 2.x · Apache-2.0 · 独立开源项目，非 Desmos 官
 
 ## 验证状态
 
-0.2 实现在本地 macOS/Python 3.10 环境通过了 41 个 Python 测试和 3 个隔离的 JavaScript 控制器测试。
+0.2 实现在本地 macOS/Python 3.10 环境通过了 42 个 Python 测试和 3 个隔离的 JavaScript 控制器测试。
 另在独立安装的 wheel 中验证了命令入口、PNG 返回及 HTML 模板打包。
 CI 已配置 Linux、macOS、Windows 和 Python 3.10/3.12；不表示远端所有任务已经运行通过。
 

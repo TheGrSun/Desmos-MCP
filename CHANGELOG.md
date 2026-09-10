@@ -8,6 +8,7 @@
 - Add interactive setup guidance, expression editing, sliders, reset, PNG export and JSON state import/export.
 - Validate configuration and inputs; build expressions through a restricted AST parser rather than `sympify` on user input.
 - Run analysis and rendering in disposable processes with timeout, cancellation cleanup and bounded active concurrency.
+- Exclude cold worker imports and Matplotlib font-cache setup from the calculation timeout on CI runners.
 - Distinguish stationary points, nondifferentiable candidates and unresolved symbolic results.
 - Add guide/example resources, working prompts, regression tests and CI.
 

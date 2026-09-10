@@ -47,19 +47,42 @@ async def run_worker(payload: dict, timeout: float) -> dict:
         sys.executable,
         "-m",
         "desmos_mcp.worker",
+        payload["operation"],
         stdin=asyncio.subprocess.PIPE,
         stdout=asyncio.subprocess.PIPE,
         stderr=asyncio.subprocess.PIPE,
     )
+    ready = False
     try:
-        stdout, _stderr = await asyncio.wait_for(process.communicate(json.dumps(payload).encode()), timeout)
+        assert process.stdin and process.stdout and process.stderr
+        process.stdin.write(json.dumps(payload).encode())
+        await process.stdin.drain()
+        process.stdin.close()
+
+        # A cold macOS runner may spend tens of seconds importing Matplotlib and
+        # creating its font cache. That setup is not part of the calculation budget.
+        ready_line = await asyncio.wait_for(process.stdout.readline(), max(60.0, timeout))
+        if ready_line != b'{"ready": true}\n':
+            stderr = await process.stderr.read()
+            await process.wait()
+            raise ToolError(
+                "Calculation worker did not initialize correctly. " + stderr.decode(errors="replace")[-500:]
+            )
+        ready = True
+        stdout, _stderr, _returncode = await asyncio.wait_for(
+            asyncio.gather(process.stdout.read(), process.stderr.read(), process.wait()), timeout
+        )
     except (asyncio.TimeoutError, asyncio.CancelledError) as exc:
         if process.returncode is None:
             process.kill()
         await process.communicate()
         if isinstance(exc, asyncio.CancelledError):
             raise
-        raise ToolError(f"Calculation exceeded {timeout:g}s. Simplify the formula or use basic analysis.") from exc
+        if ready:
+            message = f"Calculation exceeded {timeout:g}s. Simplify the formula or use basic analysis."
+        else:
+            message = "Calculation worker initialization exceeded its startup timeout."
+        raise ToolError(message) from exc
     if process.returncode:
         raise ToolError("Calculation process failed. Try a simpler expression or reduce the plotting range.")
     result = json.loads(stdout)
